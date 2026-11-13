@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c151b" />
+  <meta name="description" content="Abastece+: compare gasolina, etanol e misturas para diferentes veículos, com autonomia, custo por km e tanque cheio." />
+  <meta name="application-name" content="Abastece+" />
+  <meta name="author" content="Paulo Edney" />
+  <meta name="application-version" content="1.1.0" />
+  <title>Abastece+ — Simulador de combustível</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c151b;
+      --surface: #142129;
+      --surface-2: #1a2932;
+      --surface-3: #20323b;
+      --line: #2d4149;
+      --text: #edf5f2;
+      --muted: #9cb2b8;
+      --mint: #a8f5c4;
+      --mint-deep: #173d33;
+      --blue: #a1cafa;
+      --radius: 20px;
+      --shadow: 0 12px 35px rgba(0,0,0,.13);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.45; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, summary:focus-visible, select:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+    .shell { max-width: 1130px; margin: auto; padding: 26px 26px 45px; }
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 52px; }
+    .brand-mark { width: 40px; height: 40px; flex: none; background: var(--mint); color: #10231a; display: grid; place-items: center; border-radius: 13px; }
+    .brand { font-size: 18px; font-weight: 850; letter-spacing: -.6px; }
+    .brand span { color: var(--mint); }
+    .car-pill { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: #142127; border-radius: 100px; padding: 8px 13px; font-size: 12px; font-weight: 650; color: #c6dbd7; }
+    .car-pill svg { width: 16px; height: 16px; }
+    .intro { max-width: 710px; margin-bottom: 30px; }
+    .kicker { color: var(--mint); text-transform: uppercase; font-size: 11px; font-weight: 850; letter-spacing: 2px; margin: 0 0 12px; }
+    h1 { margin: 0; font-size: clamp(33px, 5vw, 51px); letter-spacing: -2px; font-weight: 850; line-height: 1.11; }
+    h1 em { font-style: normal; color: var(--mint); }
+    .subtitle { margin: 14px 0 0; max-width: 590px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+    .layout { display: grid; grid-template-columns: minmax(320px, .91fr) minmax(0, 1.09fr); gap: 21px; align-items: start; }
+    .panel { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .settings { padding: 26px; }
+    .results { padding: 26px; }
+    .section-title { margin: 0; font-size: 17px; font-weight: 760; letter-spacing: -.4px; }
+    .section-subtitle { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
+    .rule { height: 1px; background: var(--line); margin: 25px 0; }
+    .field-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 700; margin: 0 0 11px; }
+    .field-help { font-size: 12px; color: var(--muted); font-weight: 450; }
+    .price-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .price-field { display: block; position: relative; background: var(--surface-2); border: 1px solid var(--line); border-radius: 13px; padding: 12px 13px; }
+    .price-field:focus-within { border-color: var(--mint); }
+    .price-name { display: flex; gap: 7px; align-items: center; margin-bottom: 7px; color: #cedbdc; font-weight: 650; font-size: 12px; }
+    .fuel-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+    .fuel-dot.eth { background: var(--mint); }
+    .price-entry { display: flex; gap: 4px; align-items: baseline; }
+    .currency { color: var(--muted); font-size: 12px; }
+    .price-entry input { width: 100%; padding: 0; color: var(--text); border: 0; background: transparent; outline: 0; min-width: 0; font-size: 25px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+    .segmented { padding: 4px; display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--line); gap: 4px; }
+    .segmented.three { grid-template-columns: 1fr 1fr 1fr; }
+    .segmented button { border: 0; border-radius: 9px; background: transparent; padding: 11px 6px; color: var(--muted); font-size: 12px; font-weight: 750; min-height: 42px; transition: .15s; }
+    .segmented button.active { color: #123024; background: var(--mint); box-shadow: 0 3px 8px rgba(0,0,0,.15); }
+    .route-note { color: var(--muted); font-size: 11px; margin: 9px 2px 0; }
+    .budget-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 13px; }
+    .preset { border: 1px solid var(--line); border-radius: 11px; color: #d6e5e3; font-weight: 740; font-size: 13px; background: var(--surface-2); padding: 12px 4px; }
+    .preset.active { border-color: var(--mint); background: var(--mint-deep); color: var(--mint); }
+    .budget-custom { margin-top: 12px; }
+    .amount-wrap { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); padding: 12px 15px; }
+    .amount-wrap span { color: var(--muted); }
+    .amount-wrap input { min-width: 0; width: 100%; background: transparent; color: var(--text); border: 0; outline: 0; font-weight: 750; font-size: 18px; }
+    .tank-caption { margin: 13px 0 0; padding: 12px 14px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--line); color: #d6e5e3; display: none; font-size: 13px; }
+    .tank-caption strong { color: var(--mint); font-size: 18px; }
+    .tank-caption.show { display: block; }
+    .setting-block + .setting-block { margin-top: 20px; }
+    details { border: 1px solid var(--line); border-radius: 12px; padding: 15px; background: var(--surface-2); }
+    summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #dbe9e6; }
+    summary::marker { color: var(--mint); }
+    .advanced-grid { margin-top: 17px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .advanced-grid label { display: block; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .advanced-grid input { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface); font-variant-numeric: tabular-nums; }
+    .advanced-note { color: var(--muted); font-size: 11px; margin: 12px 0 0; }
+    .results-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .best-banner { margin: 21px 0 19px; border: 1px solid #396652; background: linear-gradient(130deg, #193c31, #1a302c); border-radius: 16px; padding: 19px; }
+    .best-mini { color: #c0e0cd; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: 1px; }
+    .best-name { font-size: 28px; font-weight: 850; letter-spacing: -.8px; line-height: 1.2; margin: 7px 0 8px; color: var(--mint); }
+    .best-copy { color: #d0dfd6; font-size: 12px; line-height: 1.55; }
+    .fuel-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .result-card { border: 1px solid var(--line); border-radius: 15px; padding: 17px; background: var(--surface-2); min-width: 0; }
+    .result-card.winner { border-color: #487963; }
+    .result-name { display: flex; align-items: center; gap: 7px; color: #c9d7d5; font-size: 12px; font-weight: 730; }
+    .result-range { font-size: clamp(27px,3vw,34px); font-weight: 850; letter-spacing: -1px; margin: 10px 0 1px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .unit { color: var(--muted); font-size: 13px; font-weight: 550; letter-spacing: 0; }
+    .result-desc { font-size: 11px; color: var(--muted); min-height: 16px; }
+    .stats { display: grid; gap: 8px; padding-top: 15px; margin-top: 16px; border-top: 1px solid var(--line); }
+    .stat { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font-size: 12px; }
+    .stat span { color: var(--muted); }
+    .stat strong { font-variant-numeric: tabular-nums; font-weight: 780; white-space: nowrap; }
+    .mix-panel { margin-top: 19px; background: #101d24; border: 1px solid var(--line); border-radius: 15px; padding: 20px; }
+    .mix-heading { display: flex; justify-content: space-between; gap: 15px; align-items: start; }
+    .mix-heading h3 { margin: 0; font-size: 15px; font-weight: 760; }
+    .mix-heading p { color: var(--muted); margin: 4px 0 0; font-size: 12px; }
+    .mix-percent { color: var(--mint); font-size: 18px; font-weight: 820; white-space: nowrap; }
+    .mix-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin: 8px 0 5px; }
+    input[type="range"] { width: 100%; height: 7px; accent-color: var(--mint); cursor: pointer; }
+    .mix-summary { background: var(--surface-2); border-radius: 11px; margin-top: 12px; padding: 13px 15px; }
+    .mix-amounts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 11px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .mix-amounts span { display: block; color: var(--muted); font-size: 11px; }
+    .mix-amounts strong { display: block; font-size: 16px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .mix-range { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 12px; }
+    .mix-range span { color: var(--muted); }
+    .mix-range strong { font-size: 18px; font-weight: 850; font-variant-numeric: tabular-nums; }
+    .mix-extra { color: var(--muted); font-size: 11px; margin: 7px 0 0; }
+    .footnote { margin: 16px 0 0; font-size: 11px; line-height: 1.65; color: var(--muted); }
+    .footnote strong { color: #c7d8d2; }
+    .bottom { margin-top: 25px; display: flex; align-items: start; justify-content: space-between; gap: 16px; color: #789199; font-size: 11px; }
+    .bottom span { max-width: 730px; }
+    .reset { border: 1px solid var(--line); border-radius: 10px; color: #d7e7e0; background: var(--surface); padding: 9px 13px; white-space: nowrap; font-weight: 650; font-size: 12px; }
+    .hidden { display: none !important; }
+    .error { color: #ffc0bb; font-size: 12px; margin-top: 10px; }
+    @media (max-width: 840px) {
+      .layout { grid-template-columns: 1fr; }
+      .shell { max-width: 630px; }
+      .header { margin-bottom: 34px; }
+      .intro { margin-bottom: 24px; }
+    }
+    @media (max-width: 480px) {
+      .shell { padding: 21px 16px 32px; }
+      .header { margin-bottom: 31px; }
+      .brand { font-size: 16px; }
+      .car-pill { font-size: 10px; padding: 8px 9px; }
+      h1 { font-size: 36px; letter-spacing: -1.6px; }
+      .subtitle { font-size: 13px; }
+      .settings, .results { padding: 19px; }
+      .layout { gap: 14px; }
+      .price-field { padding: 10px 11px; }
+      .price-entry input { font-size: 23px; }
+      .result-card { padding: 13px; }
+      .result-range { font-size: 28px; }
+      .stat { align-items: start; flex-wrap: wrap; }
+      .stats { gap: 9px; }
+      .mix-panel { padding: 16px; }
+      .bottom { flex-direction: column-reverse; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; } }
+    /* Vehicle selection — model-independent UI */
+    .vehicle-select-wrap { position: relative; display: block; }
+    .vehicle-select { display: block; width: 100%; min-height: 50px; padding: 13px 42px 13px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; color: var(--text); appearance: none; cursor: pointer; font-weight: 680; font-size: 14px; }
+    .vehicle-select-wrap:after { content: ''; position: absolute; width: 8px; height: 8px; right: 17px; top: 17px; border-right: 2px solid var(--mint); border-bottom: 2px solid var(--mint); transform: rotate(45deg); pointer-events: none; }
+    .vehicle-select option { background: var(--surface); color: var(--text); }
+    .vehicle-help { color: var(--muted); font-size: 11px; margin: 9px 1px 0; line-height: 1.5; }
+    .vehicle-detail { color: #c5d6d3; font-size: 12px; margin: 8px 1px 0; }
+    .app-credit { color: #89a3a7; font-size: 11px; }
+    .app-credit strong { font-weight: 650; color: #b7c9ca; }
+    @media (max-width: 480px) { .car-pill { max-width: 50vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+
+
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M3 21h14M7 7h6v5H7zM16 9l3 2v6a2 2 0 0 0 4 0v-6l-2-2"/></svg>
+      </div>
+      <div class="brand">abastece<span>+</span></div>
+      <div class="car-pill"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 17-2 1v-5l2-7h14l2 7v5l-2-1M3 13h18M5 17h14M7 17v2M17 17v2M7 10h.01M17 10h.01"/></svg><span id="vehiclePill">T-Cross 2024 · 1.0 TSI</span></div>
+    </header>
+
+    <section class="intro">
+      <p class="kicker">Simulador de combustível</p>
+      <h1>Mais estrada.<br/><em>Menos gasto.</em></h1>
+      <p class="subtitle">Descubra qual combustível rende mais no seu bolso. Ajuste os preços, escolha quanto abastecer e compare gasolina, etanol e mistura em tempo real.</p>
+    </section>
+
+    <div class="layout">
+      <section class="panel settings" aria-labelledby="settings-title">
+        <h2 class="section-title" id="settings-title">Configure seu abastecimento</h2>
+        <p class="section-subtitle">Edite os valores conforme os preços do posto.</p>
+        <div class="rule"></div>
+
+        <div class="setting-block">
+          <label for="vehicleSelect" class="field-label">Seu veículo <span class="field-help">Selecione o modelo</span></label>
+          <div class="vehicle-select-wrap">
+            <select id="vehicleSelect" class="vehicle-select" aria-describedby="vehicleDetail vehicleHelp">
+              <option value="vw-tcross-2024-200tsi" selected>Volkswagen T-Cross 2024 · 1.0 TSI</option>
+            </select>
+          </div>
+          <p class="vehicle-detail" id="vehicleDetail">Tanque: 52 L · Flex</p>
+          <p class="vehicle-help" id="vehicleHelp">Os dados do veículo carregam automaticamente. Mais modelos poderão ser adicionados ao catálogo.</p>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="setting-block">
+          <p class="field-label">Preço por litro</p>
+          <div class="price-grid">
+            <label class="price-field" for="priceGas"><span class="price-name"><i class="fuel-dot"></i> Gasolina</span><span class="price-entry"><span class="currency">R$</span><input id="priceGas" type="number" inputmode="decimal" min="0.01" max="100" step="0.01" value="6.85" aria-label="Preço da gasolina por litro" /></span></label>
+            <label class="price-field" for="priceEt"><span class="price-name"><i class="fuel-dot eth"></i> Etanol</span><span class="price-entry"><span class="currency">R$</span><input id="priceEt" type="number" inputmode="decimal" min="0.01" max="100" step="0.01" value="4.65" aria-label="Preço do etanol por litro" /></span></label>
+          </div>
+        </div>
+
+        <div class="rule"></div>
+        <div class="setting-block">
+          <p class="field-label">Seu trajeto</p>
+          <div class="segmented three" role="group" aria-label="Tipo de percurso" id="routeButtons">
+            <button type="button" data-route="city" aria-pressed="false">Cidade</button>
+            <button type="button" data-route="mixed" aria-pressed="true" class="active">Misto</button>
+            <button type="button" data-route="road" aria-pressed="false">Estrada</button>
+          </div>
+          <p class="route-note" id="routeNote">Misto: 60% cidade e 40% estrada, por distância.</p>
+        </div>
+
+        <div class="rule"></div>
+        <div class="setting-block">
+          <p class="field-label">Como deseja abastecer?</p>
+          <div class="segmented" role="group" aria-label="Tipo de abastecimento" id="modeButtons">
+            <button type="button" data-mode="budget" aria-pressed="true" class="active">Por valor</button>
+            <button type="button" data-mode="full" aria-pressed="false">Tanque cheio</button>
+          </div>
+          <div id="budgetControls">
+            <div class="budget-presets" role="group" aria-label="Valores rápidos de abastecimento" id="presetButtons">
+              <button type="button" class="preset" data-amount="100" aria-pressed="false">R$ 100</button>
+              <button type="button" class="preset active" data-amount="150" aria-pressed="true">R$ 150</button>
+              <button type="button" class="preset" data-amount="200" aria-pressed="false">R$ 200</button>
+            </div>
+            <label for="budget" class="field-label budget-custom">Ou digite outro valor <span class="field-help">R$</span></label>
+            <div class="amount-wrap"><span>R$</span><input id="budget" type="number" inputmode="decimal" min="0.01" max="10000" step="0.01" value="150" aria-label="Valor para abastecer" /></div>
+          </div>
+          <div class="tank-caption" id="tankCaption">Capacidade do tanque: <strong id="tankCapacity">52 litros</strong> <span class="field-help">(partindo de vazio)</span></div>
+        </div>
+
+        <div class="rule"></div>
+        <details id="advanced">
+          <summary>Ajustar consumo real (km/l)</summary>
+          <div class="advanced-grid">
+            <label for="gasCity">Gasolina · cidade<input id="gasCity" type="number" min="1" max="50" step="0.1" inputmode="decimal" value="11.9" /></label>
+            <label for="etCity">Etanol · cidade<input id="etCity" type="number" min="1" max="50" step="0.1" inputmode="decimal" value="8.2" /></label>
+            <label for="gasRoad">Gasolina · estrada<input id="gasRoad" type="number" min="1" max="50" step="0.1" inputmode="decimal" value="14.3" /></label>
+            <label for="etRoad">Etanol · estrada<input id="etRoad" type="number" min="1" max="50" step="0.1" inputmode="decimal" value="10.1" /></label>
+          </div>
+          <p class="advanced-note"><span id="consumptionNote">Valores iniciais de referência para o veículo selecionado.</span> Use as médias do computador de bordo para resultados mais próximos da sua realidade.</p>
+        </details>
+        <p class="error hidden" role="alert" id="validationError">Confira os valores: todos os preços e consumos devem ser maiores que zero.</p>
+      </section>
+
+      <section class="panel results" aria-labelledby="results-title">
+        <div class="results-header">
+          <div><h2 class="section-title" id="results-title">Seu resultado</h2><p class="section-subtitle" id="resultSubtitle">Estimativa com R$ 150,00.</p></div>
+        </div>
+
+        <div class="best-banner" aria-live="polite">
+          <div class="best-mini">A opção mais econômica por km</div>
+          <div class="best-name" id="bestName">Etanol</div>
+          <div class="best-copy" id="bestCopy">Compare os resultados abaixo.</div>
+        </div>
+
+        <div class="fuel-cards">
+          <article class="result-card" id="gasCard" aria-label="Resultados da gasolina">
+            <div class="result-name"><i class="fuel-dot"></i> Gasolina</div>
+            <div class="result-range"><span id="gasRange">—</span> <span class="unit">km</span></div>
+            <div class="result-desc">Autonomia estimada</div>
+            <div class="stats">
+              <div class="stat"><span>Litros</span><strong id="gasLiters">—</strong></div>
+              <div class="stat"><span>Gasto</span><strong id="gasSpend">—</strong></div>
+              <div class="stat"><span>Custo / 100 km</span><strong id="gasCost100">—</strong></div>
+            </div>
+          </article>
+          <article class="result-card" id="etCard" aria-label="Resultados do etanol">
+            <div class="result-name"><i class="fuel-dot eth"></i> Etanol</div>
+            <div class="result-range"><span id="etRange">—</span> <span class="unit">km</span></div>
+            <div class="result-desc">Autonomia estimada</div>
+            <div class="stats">
+              <div class="stat"><span>Litros</span><strong id="etLiters">—</strong></div>
+              <div class="stat"><span>Gasto</span><strong id="etSpend">—</strong></div>
+              <div class="stat"><span>Custo / 100 km</span><strong id="etCost100">—</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="mix-panel">
+          <div class="mix-heading"><div><h3>E se eu misturar?</h3><p id="mixHint">Escolha a porcentagem do valor destinada ao etanol.</p></div><div class="mix-percent" id="mixPct">50%</div></div>
+          <div class="mix-labels"><span>0% etanol</span><span>100% etanol</span></div>
+          <input type="range" id="mixSlider" min="0" max="100" step="5" value="50" aria-label="Porcentagem de etanol na mistura" />
+          <div class="mix-summary">
+            <div class="mix-amounts">
+              <div><span>Gasolina</span><strong id="mixGas">—</strong></div>
+              <div><span>Etanol</span><strong id="mixEt">—</strong></div>
+            </div>
+            <div class="mix-range"><span>Autonomia estimada</span><strong id="mixRange">— km</strong></div>
+            <div class="mix-range" style="margin-top:7px"><span>Gasto total</span><strong id="mixSpend" style="font-size:14px">—</strong></div>
+            <div class="mix-range" style="margin-top:7px"><span>Custo / 100 km</span><strong id="mixCost100" style="font-size:14px">—</strong></div>
+          </div>
+          <p class="mix-extra" id="mixNote">A mistura é permitida em motores flex, mas não gera economia extra por si só.</p>
+        </div>
+        <p class="footnote"><strong>Importante:</strong> as estimativas de abastecimento presumem tanque vazio e condições semelhantes às médias informadas. Na prática, trânsito, ar-condicionado, condução e combustível alteram a autonomia. O consumo da mistura é uma aproximação por proporção de litros, não uma medição do veículo.</p>
+      </section>
+    </div>
+    <footer class="bottom">
+      <div>
+        <span>Abastece+ · Simulador independente, sem vínculo com montadoras. Autonomia estimada, não garantida.</span>
+        <div class="app-credit"><span id="appVersion">v1.1.0</span> · por <strong id="appAuthor">Paulo Edney</strong></div>
+      </div>
+      <button type="button" class="reset" id="reset">Restaurar valores</button>
+    </footer>
+  </main>
+  <!-- Ordem explícita das dependências: catálogo → regras → interface. Sem bibliotecas externas. -->
+  <script>
+/**
+ * Abastece+ — configuração e catálogo de veículos
+ * Versão: 1.1.0 | Autor: Paulo Edney
+ *
+ * Para adicionar modelos: crie um novo objeto em VEHICLES.
+ * Cada veículo tem um ID estável, capacidade do tanque e consumo por combustível.
+ * A interface e os cálculos são independentes do modelo selecionado.
+ */
+(function (root) {
+  'use strict';
+
+  const APP_META = Object.freeze({
+    name: 'Abastece+',
+    version: '1.1.0',
+    author: 'Paulo Edney'
+  });
+
+  const APP_DEFAULTS = Object.freeze({
+    gasPrice: 6.85,
+    ethanolPrice: 4.65,
+    budget: 150,
+    route: 'mixed',
+    mode: 'budget',
+    ethanolPercent: 50,
+    cityShare: 0.60 // percentual da DISTÂNCIA, não do tempo de viagem
+  });
+
+  // Referências estimadas: personalize de acordo com os dados do seu veículo.
+  // Importante: combustível "ethanol" significa etanol hidratado de posto;
+  // gasolina automotiva brasileira já contém etanol na composição.
+  const VEHICLES = [
+    {
+      id: 'vw-tcross-2024-200tsi',
+      brand: 'Volkswagen',
+      model: 'T-Cross',
+      year: 2024,
+      variant: '1.0 200 TSI',
+      tankLiters: 52,
+      fuelType: 'flex',
+      consumption: {
+        gasoline: { city: 11.9, road: 14.3 },
+        ethanol:  { city: 8.2, road: 10.1 }
+      },
+      consumptionNote: 'Consumo de referência do T-Cross 2024 1.0 TSI; ajuste com as médias reais do seu carro.'
+    }
+
+    // Exemplo para futuro veículo (adicione após conferir as especificações):
+    // ,{
+    //   id: 'marca-modelo-ano-versao',
+    //   brand: 'Marca', model: 'Modelo', year: 2027, variant: 'Versão',
+    //   tankLiters: 45, fuelType: 'flex',
+    //   consumption: {
+    //     gasoline: { city: 12, road: 14 },
+    //     ethanol:  { city: 8, road: 10 }
+    //   },
+    //   consumptionNote: 'Fonte e condição de referência dos consumos.'
+    // }
+  ];
+
+  /** Não permite registrar modelos com campos ausentes ou duplicados. */
+  function validateVehicles(vehicles) {
+    const ids = new Set();
+    for (const vehicle of vehicles) {
+      if (!vehicle.id || ids.has(vehicle.id)) throw new Error('ID de veículo ausente ou duplicado: ' + vehicle.id);
+      ids.add(vehicle.id);
+      if (!vehicle.brand || !vehicle.model || !vehicle.variant || !vehicle.year || vehicle.fuelType !== 'flex') {
+        throw new Error('Cadastro inválido: ' + vehicle.id);
+      }
+      if (!Number.isFinite(vehicle.tankLiters) || vehicle.tankLiters <= 0) {
+        throw new Error('Tanque inválido: ' + vehicle.id);
+      }
+      for (const fuel of ['gasoline', 'ethanol']) {
+        for (const route of ['city', 'road']) {
+          if (!Number.isFinite(vehicle.consumption?.[fuel]?.[route]) || vehicle.consumption[fuel][route] <= 0) {
+            throw new Error(`Consumo inválido: ${vehicle.id}/${fuel}/${route}`);
+          }
+        }
+      }
+    }
+  }
+
+  validateVehicles(VEHICLES);
+
+  root.Abastece = root.Abastece || {};
+  root.Abastece.config = Object.freeze({
+    meta: APP_META,
+    defaults: APP_DEFAULTS,
+    vehicles: VEHICLES,
+    defaultVehicleId: VEHICLES[0].id
+  });
+})(window);
+
+  </script>
+  <script>
+/** Abastece+ — motor de cálculo (sem DOM, sem dependências). */
+(function (root) {
+  'use strict';
+
+  /** Médias por distância: média harmônica ponderada para percursos mistos. */
+  function efficiency(city, road, route, cityShare = 0.6) {
+    if (route === 'city') return city;
+    if (route === 'road') return road;
+    if (route !== 'mixed') throw new Error('Percurso inválido');
+    return 1 / (cityShare / city + (1 - cityShare) / road);
+  }
+
+  function pureFuel({ price, consumption, capacity, mode, budget }) {
+    const liters = mode === 'full' ? capacity : Math.min(capacity, budget / price);
+    return {
+      liters,
+      spent: liters * price,
+      range: liters * consumption,
+      cost100: 100 * price / consumption
+    };
+  }
+
+  /**
+   * Modelo simplificado de mistura: preço e rendimento interpolados por volume.
+   * No modo "budget", percent representa a proporção do VALOR em etanol.
+   * No modo "full", percent representa a proporção dos LITROS em etanol.
+   * O modelo não representa uma curva real de eficiência de misturas.
+   */
+  function mixedFuel({ gasolinePrice, ethanolPrice, gasolineConsumption, ethanolConsumption, capacity, mode, budget, ethanolPercent }) {
+    const ratio = ethanolPercent / 100;
+    let gasLiters;
+    let ethanolLiters;
+
+    if (mode === 'full') {
+      gasLiters = capacity * (1 - ratio);
+      ethanolLiters = capacity * ratio;
+    } else {
+      gasLiters = budget * (1 - ratio) / gasolinePrice;
+      ethanolLiters = budget * ratio / ethanolPrice;
+      const total = gasLiters + ethanolLiters;
+      if (total > capacity) {
+        const scale = capacity / total;
+        gasLiters *= scale;
+        ethanolLiters *= scale;
+      }
+    }
+
+    const liters = gasLiters + ethanolLiters;
+    const spent = gasLiters * gasolinePrice + ethanolLiters * ethanolPrice;
+    const estimatedConsumption = (gasLiters * gasolineConsumption + ethanolLiters * ethanolConsumption) / liters;
+    return {
+      gasLiters,
+      ethanolLiters,
+      liters,
+      spent,
+      range: liters * estimatedConsumption,
+      cost100: 100 * (spent / liters) / estimatedConsumption
+    };
+  }
+
+  function bestOption(gasolineCost100, ethanolCost100) {
+    // Diferenças menores que meio centavo a cada 100 km arredondam para empate.
+    if (Math.abs(gasolineCost100 - ethanolCost100) < 0.005) return 'tie';
+    return gasolineCost100 < ethanolCost100 ? 'gasoline' : 'ethanol';
+  }
+
+  root.Abastece = root.Abastece || {};
+  root.Abastece.calculator = Object.freeze({
+    efficiency,
+    pureFuel,
+    mixedFuel,
+    bestOption
+  });
+})(window);
+
+  </script>
+  <script>
+/** Abastece+ — controlador de estado, eventos e interface. */
+(function (root, document) {
+  'use strict';
+
+  const { meta, defaults, vehicles, defaultVehicleId } = root.Abastece.config;
+  const calculator = root.Abastece.calculator;
+  const byId = new Map(vehicles.map(vehicle => [vehicle.id, vehicle]));
+  const consumptionFields = ['gasCity', 'gasRoad', 'etCity', 'etRoad'];
+  const $ = id => document.getElementById(id);
+  const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  const money = value => formatter.format(value);
+  const number = (value, digits = 1) => Number(value).toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const distance = value => Math.round(value).toLocaleString('pt-BR');
+  const parseValue = id => Number(String($(id).value).replace(',', '.'));
+  const write = (id, text) => { $(id).textContent = text; };
+
+  const state = {
+    vehicleId: defaultVehicleId,
+    route: defaults.route,
+    mode: defaults.mode,
+    ethanolPercent: defaults.ethanolPercent,
+    vehicleEdits: new Map()
+  };
+
+  function getVehicle() {
+    return byId.get(state.vehicleId);
+  }
+
+  function vehicleLabel(vehicle) {
+    return `${vehicle.brand} ${vehicle.model} ${vehicle.year} · ${vehicle.variant}`;
+  }
+
+  function vehicleDefaults(vehicle) {
+    return {
+      gasCity: vehicle.consumption.gasoline.city,
+      gasRoad: vehicle.consumption.gasoline.road,
+      etCity: vehicle.consumption.ethanol.city,
+      etRoad: vehicle.consumption.ethanol.road
+    };
+  }
+
+  /** Mantém ajustes independentes para cada modelo enquanto a página estiver aberta. */
+  function saveVehicleEdits() {
+    state.vehicleEdits.set(state.vehicleId, Object.fromEntries(consumptionFields.map(id => [id, $(id).value])));
+  }
+
+  function loadVehicle(vehicle) {
+    const readings = state.vehicleEdits.get(vehicle.id) || vehicleDefaults(vehicle);
+    for (const id of consumptionFields) $(id).value = readings[id];
+    $('vehicleSelect').value = vehicle.id;
+    write('vehiclePill', `${vehicle.model} ${vehicle.year} · ${vehicle.variant}`);
+    write('vehicleDetail', `Tanque: ${number(vehicle.tankLiters, 0)} L · ${vehicle.fuelType === 'flex' ? 'Flex' : vehicle.fuelType}`);
+    write('tankCapacity', `${number(vehicle.tankLiters, 0)} litros`);
+    write('consumptionNote', vehicle.consumptionNote || `Consumo inicial de referência do ${vehicleLabel(vehicle)}.`);
+  }
+
+  function populateVehicles() {
+    const select = $('vehicleSelect');
+    select.replaceChildren();
+    for (const vehicle of vehicles) {
+      const option = document.createElement('option');
+      option.value = vehicle.id;
+      option.textContent = vehicleLabel(vehicle);
+      select.appendChild(option);
+    }
+    loadVehicle(getVehicle());
+  }
+
+  function syncButtons() {
+    for (const [key, property] of [['route', 'route'], ['mode', 'mode']]) {
+      document.querySelectorAll(`[data-${key}]`).forEach(button => {
+        const active = button.dataset[key] === state[property];
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    }
+    document.querySelectorAll('[data-amount]').forEach(button => {
+      const active = state.mode === 'budget' && Number(button.dataset.amount) === parseValue('budget');
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    $('budgetControls').classList.toggle('hidden', state.mode === 'full');
+    $('tankCaption').classList.toggle('show', state.mode === 'full');
+    write('routeNote', state.route === 'city'
+      ? 'Percurso urbano, incluindo trechos com trânsito.'
+      : state.route === 'road'
+        ? 'Percurso em rodovias, com velocidade relativamente constante.'
+        : `Misto: ${Math.round(defaults.cityShare * 100)}% cidade e ${Math.round((1 - defaults.cityShare) * 100)}% estrada, por distância.`);
+    write('mixHint', state.mode === 'budget'
+      ? 'Escolha a porcentagem do valor destinada ao etanol.'
+      : 'Escolha a porcentagem dos litros de etanol no tanque.');
+  }
+
+  function readInputs() {
+    return {
+      gasolinePrice: parseValue('priceGas'),
+      ethanolPrice: parseValue('priceEt'),
+      budget: parseValue('budget'),
+      gasCity: parseValue('gasCity'),
+      gasRoad: parseValue('gasRoad'),
+      etCity: parseValue('etCity'),
+      etRoad: parseValue('etRoad')
+    };
+  }
+
+  function validInputs(input) {
+    const relevant = ['gasolinePrice', 'ethanolPrice', 'gasCity', 'gasRoad', 'etCity', 'etRoad'];
+    if (state.mode === 'budget') relevant.push('budget');
+    return relevant.every(key => Number.isFinite(input[key]) && input[key] > 0 && input[key] <= (key === 'budget' ? 10000 : 100));
+  }
+
+  function showResult(prefix, result) {
+    write(prefix + 'Range', distance(result.range));
+    write(prefix + 'Liters', `${number(result.liters, 2)} L`);
+    write(prefix + 'Spend', money(result.spent));
+    write(prefix + 'Cost100', money(result.cost100));
+  }
+
+  function render() {
+    syncButtons();
+    const vehicle = getVehicle();
+    const input = readInputs();
+    const valid = validInputs(input);
+    $('validationError').classList.toggle('hidden', valid);
+    if (!valid) {
+      write('bestName', 'Revise os valores');
+      write('bestCopy', 'Informe preços e consumos maiores que zero para calcular.');
+      return;
+    }
+
+    const gasolineConsumption = calculator.efficiency(input.gasCity, input.gasRoad, state.route, defaults.cityShare);
+    const ethanolConsumption = calculator.efficiency(input.etCity, input.etRoad, state.route, defaults.cityShare);
+    const shared = { capacity: vehicle.tankLiters, mode: state.mode, budget: input.budget };
+    const gasoline = calculator.pureFuel({ ...shared, price: input.gasolinePrice, consumption: gasolineConsumption });
+    const ethanol = calculator.pureFuel({ ...shared, price: input.ethanolPrice, consumption: ethanolConsumption });
+    const mixture = calculator.mixedFuel({
+      ...shared,
+      gasolinePrice: input.gasolinePrice,
+      ethanolPrice: input.ethanolPrice,
+      gasolineConsumption,
+      ethanolConsumption,
+      ethanolPercent: state.ethanolPercent
+    });
+
+    const best = calculator.bestOption(gasoline.cost100, ethanol.cost100);
+    const bestText = { gasoline: 'Gasolina', ethanol: 'Etanol', tie: 'Empate' }[best];
+    const diff = Math.abs(gasoline.cost100 - ethanol.cost100);
+    write('bestName', bestText);
+    write('bestCopy', best === 'tie'
+      ? 'Pelos consumos informados, os combustíveis custam praticamente o mesmo por quilômetro.'
+      : `Economia estimada de ${money(diff)} a cada 100 km em comparação com ${best === 'ethanol' ? 'gasolina' : 'etanol'}.`);
+    $('gasCard').classList.toggle('winner', best === 'gasoline');
+    $('etCard').classList.toggle('winner', best === 'ethanol');
+    write('resultSubtitle', state.mode === 'full'
+      ? `Com o tanque de ${number(vehicle.tankLiters, 0)} litros, partindo de vazio.`
+      : `Com até ${money(input.budget)} para abastecer.`);
+    showResult('gas', gasoline);
+    showResult('et', ethanol);
+    write('mixPct', `${state.ethanolPercent}%`);
+    write('mixGas', `${number(mixture.gasLiters, 2)} L`);
+    write('mixEt', `${number(mixture.ethanolLiters, 2)} L`);
+    write('mixRange', `${distance(mixture.range)} km`);
+    write('mixSpend', money(mixture.spent));
+    write('mixCost100', money(mixture.cost100));
+
+    const isTankLimited = state.mode === 'budget' &&
+      [gasoline.liters, ethanol.liters, mixture.liters].some(liters => liters >= vehicle.tankLiters - 1e-8);
+    write('mixNote', isTankLimited
+      ? `O tanque comporta até ${number(vehicle.tankLiters, 0)} L. Valores acima da capacidade são limitados, considerando tanque inicialmente vazio.`
+      : 'A mistura é permitida em motores flex, mas não gera economia extra por si só.');
+  }
+
+  function reset() {
+    state.vehicleId = defaultVehicleId;
+    state.route = defaults.route;
+    state.mode = defaults.mode;
+    state.ethanolPercent = defaults.ethanolPercent;
+    state.vehicleEdits.clear();
+    $('priceGas').value = defaults.gasPrice;
+    $('priceEt').value = defaults.ethanolPrice;
+    $('budget').value = defaults.budget;
+    $('mixSlider').value = String(defaults.ethanolPercent);
+    loadVehicle(getVehicle());
+    render();
+  }
+
+  function bindEvents() {
+    for (const id of ['priceGas', 'priceEt', 'budget', ...consumptionFields]) {
+      $(id).addEventListener('input', render);
+    }
+    $('vehicleSelect').addEventListener('change', event => {
+      const nextId = event.target.value;
+      if (!byId.has(nextId) || nextId === state.vehicleId) return;
+      saveVehicleEdits();
+      state.vehicleId = nextId;
+      loadVehicle(getVehicle());
+      render();
+    });
+    document.querySelectorAll('[data-route]').forEach(button => button.addEventListener('click', () => {
+      state.route = button.dataset.route;
+      render();
+    }));
+    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => {
+      state.mode = button.dataset.mode;
+      render();
+    }));
+    document.querySelectorAll('[data-amount]').forEach(button => button.addEventListener('click', () => {
+      $('budget').value = button.dataset.amount;
+      state.mode = 'budget';
+      render();
+    }));
+    $('mixSlider').addEventListener('input', () => {
+      state.ethanolPercent = Number($('mixSlider').value);
+      render();
+    });
+    $('reset').addEventListener('click', reset);
+  }
+
+  function init() {
+    write('appVersion', `v${meta.version}`);
+    write('appAuthor', meta.author);
+    populateVehicles();
+    $('priceGas').value = defaults.gasPrice;
+    $('priceEt').value = defaults.ethanolPrice;
+    $('budget').value = defaults.budget;
+    $('mixSlider').value = defaults.ethanolPercent;
+    bindEvents();
+    render();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
+})(window, document);
+
+  </script>
+</body>
+</html>
